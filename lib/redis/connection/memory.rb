@@ -715,8 +715,11 @@ class Redis
       end
 
       def set(key, value, *array_options)
-        option_nx = array_options.delete("NX")
-        option_xx = array_options.delete("XX")
+        nx_key = (array_options & ['NX', 'nx', :nx]).first
+        option_nx = array_options.delete(nx_key)
+
+        xx_key = (array_options & ['XX', 'xx', :xx]).first
+        option_xx = array_options.delete(xx_key)
 
         return false if option_nx && option_xx
 
@@ -725,9 +728,9 @@ class Redis
 
         data[key] = value.to_s
 
-        options = Hash[array_options.each_slice(2).to_a]
-        ttl_in_seconds = options["EX"] if options["EX"]
-        ttl_in_seconds = options["PX"] / 1000.0 if options["PX"]
+        options = Hash[array_options.each_slice(2).map { |k,v| [k.downcase.to_sym, v] }]
+        ttl_in_seconds = options[:ex] if options[:ex]
+        ttl_in_seconds = options[:px] / 1000.0 if options[:px]
 
         expire(key, ttl_in_seconds) if ttl_in_seconds
 
